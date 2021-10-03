@@ -1,7 +1,10 @@
+import { computed } from 'vue'
+import { useStore } from 'vuex'
+
 import WorldWind from '@nasaworldwind/worldwind'
 var satellite = require('satellite.js');
 
-import blue_dot from '../assets/icons/blue_dot.png'
+import payload_icon from '../assets/icons/satellite.png'
 import yellow_dot from '../assets/icons/yellow_dot.png'
 import red_dot from '../assets/icons/red_dot.png'
 
@@ -11,7 +14,23 @@ import red_dot from '../assets/icons/red_dot.png'
 import TLE_DATA from '../tle_data/TLE2.json' // Working fine
 
 
-export const launchGlobe = async () => {        
+export const launchGlobe = async () => { 
+  
+    const store = useStore()
+    const {
+      state: { celestial_objects },      
+    } = store
+    
+    const showLeo = computed(() => celestial_objects.showLeo)
+    const showMeo = computed(() => celestial_objects.showMeo)
+    const showHeo = computed(() => celestial_objects.showHeo)
+    const showGeo = computed(() => celestial_objects.showGeo)
+    const showUnc = computed(() => celestial_objects.showUnc)
+    const showSat = computed(() => celestial_objects.showSat)
+    const showDebris = computed(() => celestial_objects.showDebris)
+    const showRocket = computed(() => celestial_objects.showRocket)
+
+
 
     // Create a WorldWindow for the canvas.
     var wwd = new WorldWind.WorldWindow("canvasOne");
@@ -26,10 +45,7 @@ export const launchGlobe = async () => {
     var now = new Date();
     starFieldLayer.time = now;
     atmosphereLayer.time = now;
-
-
-    var compassLayer = new WorldWind.CompassLayer();
-    wwd.addLayer(compassLayer);        
+       
     wwd.addLayer(new WorldWind.CoordinatesDisplayLayer(wwd));
 
 
@@ -43,22 +59,39 @@ export const launchGlobe = async () => {
     var meoSatLayer = new WorldWind.RenderableLayer("MEO Payloads");
     var heoSatLayer = new WorldWind.RenderableLayer("HEO Payloads");
     var geoSatLayer = new WorldWind.RenderableLayer("GEO Payloads");
+    var unclassifiedSatLayer = new WorldWind.RenderableLayer("Unclassified Payloads");
 
     var leoDebrisLayer = new WorldWind.RenderableLayer("LEO Debris");
     var meoDebrisLayer = new WorldWind.RenderableLayer("MEO Debris");
     var heoDebrisLayer = new WorldWind.RenderableLayer("HEO Debris");
     var geoDebrisLayer = new WorldWind.RenderableLayer("GEO Debris");
-    
+    var unclassifiedDebrisLayer = new WorldWind.RenderableLayer("UnclassifiedDebris");
+
+    var leoRocketLayer = new WorldWind.RenderableLayer("LEO Rocket Bodies");
+    var meoRocketLayer = new WorldWind.RenderableLayer("MEO Rocket Bodies");
+    var heoRocketLayer = new WorldWind.RenderableLayer("HEO Rocket Bodies");
+    var geoRocketLayer = new WorldWind.RenderableLayer("GEO Rocket Bodies");
+    var unclassifiedRocketLayer = new WorldWind.RenderableLayer("Unclassified Rocket Bodies");
+
+
     wwd.addLayer(orbitsHoverLayer);
     wwd.addLayer(leoSatLayer);
     wwd.addLayer(meoSatLayer);
     wwd.addLayer(heoSatLayer);
     wwd.addLayer(geoSatLayer);
+    wwd.addLayer(unclassifiedSatLayer);
     
     wwd.addLayer(leoDebrisLayer);
     wwd.addLayer(meoDebrisLayer);
     wwd.addLayer(heoDebrisLayer);
     wwd.addLayer(geoDebrisLayer);
+    wwd.addLayer(unclassifiedRocketLayer);
+
+    wwd.addLayer(leoRocketLayer);
+    wwd.addLayer(meoRocketLayer);
+    wwd.addLayer(heoRocketLayer);
+    wwd.addLayer(geoRocketLayer);
+    wwd.addLayer(unclassifiedRocketLayer);
     
     wwd.addLayer(meshLayer);
     wwd.addLayer(modelLayer);
@@ -75,16 +108,14 @@ export const launchGlobe = async () => {
         time.getUTCMinutes(),
         time.getUTCSeconds());
         var position_eci = position_and_velocity["position"];
-    
-        //var gmst = satellite.gstime_from_date(time.getUTCFullYear(),
+            
         var gmst = satellite.gstime(time.getUTCFullYear(),
         time.getUTCMonth() + 1,
         time.getUTCDate(),
         time.getUTCHours(),
         time.getUTCMinutes(),
         time.getUTCSeconds());
-    
-        //var position_gd = satellite.eci_to_geodetic(position_eci, gmst);
+            
         var position_gd = satellite.eciToGeodetic(position_eci, gmst);
         var latitude = satellite.degreesLat(position_gd["latitude"]);
         var longitude = satellite.degreesLong(position_gd["longitude"]);
@@ -114,8 +145,7 @@ export const launchGlobe = async () => {
         time.getUTCMinutes(),
         time.getUTCSeconds());
         j += time.getUTCMilliseconds() * 1.15741e-8;
-        
-        
+                
         var m = (j - satrec.jdsatepoch) * 1440.0;
         var pv = satellite.sgp4(satrec, m);
         var vx, vy, vz;
@@ -132,64 +162,81 @@ export const launchGlobe = async () => {
         return satVelocity;
     }
 
-    //purifies non-working satellites
+    // Purifies non-working satellites
     function sanitizeSatellites(objectArray) {
-        var faultySatellites = 0;
-        var resultArray = [];
-        var maxSats = objectArray.length;
-        var updateTime = performance.now();
-        console.log(updateTime)
-        var now = new Date();
-        var time = new Date(now.getTime());
-        for (var i = 0; i < maxSats; i += 1) {
-            
-            try {
-                var position = getPosition(satellite.twoline2satrec(objectArray[i].TLE_LINE1, objectArray[i].TLE_LINE2), time);
-                var velocity = getVelocity(satellite.twoline2satrec(objectArray[i].TLE_LINE1, objectArray[i].TLE_LINE2), time);
-                
-            } catch (err) {
-                // console.log(objectArray[i].OBJECT_NAME +" is a faulty sat it is " + i);
-                faultySatellites += 1;                
-                continue;
-            }        
-            
-            if(typeof objectArray[i].LAUNCH_DATE === "undefined") continue;            
+      var faultySatellites = 0;
+      var resultArray = [];
+      var maxSats = objectArray.length;
+      var updateTime = performance.now();
+      console.log(updateTime)
+      var now = new Date();
+      var time = new Date(now.getTime());
+      for (var i = 0; i < maxSats; i += 1) {
+          
+          try {
 
-            resultArray.push(objectArray[i]);
-        }
-        console.log('objectArray[i]: ', objectArray[0])
-        position = getPosition(satellite.twoline2satrec(objectArray[0].TLE_LINE1, objectArray[0].TLE_LINE2), time);
+              var position = getPosition(satellite.twoline2satrec(objectArray[i].TLE_LINE1, objectArray[i].TLE_LINE2), time);
+              var velocity = getVelocity(satellite.twoline2satrec(objectArray[i].TLE_LINE1, objectArray[i].TLE_LINE2), time);                
 
-        console.log('position: ', position)
-        console.log('velocity: ', velocity)
-        updateTime = performance.now() - updateTime;
-        console.log('faultySatellites: ',faultySatellites);
-        console.log(objectArray.length + " from uncleansed");
-        console.log(resultArray.length + " from cleansed");        
-        return resultArray;
+          } catch (err) {
+              // console.log(objectArray[i].OBJECT_NAME +" is a faulty sat it is " + i);
+              faultySatellites += 1;                
+              continue;
+          }        
+          
+          if(typeof objectArray[i].LAUNCH_DATE === "undefined") continue;            
+
+          resultArray.push(objectArray[i]);
+      }
+      //console.log('objectArray[i]: ', objectArray[0])                
+      console.log('position: ', position)
+      /console.log('velocity: ', velocity)
+      updateTime = performance.now() - updateTime;
+      console.log('faultySatellites: ',faultySatellites);
+      console.log(objectArray.length + " from uncleansed");
+      console.log(resultArray.length + " from cleansed");        
+      return resultArray;
     }
 
     getSatellites(TLE_DATA)
-
+    
     function getSatellites(satellites) {
         var satPac = sanitizeSatellites(satellites);
         satPac.satDataString = JSON.stringify(satPac);
     
-        leoSatLayer.enabled = true;        
-        leoDebrisLayer.enabled = true;
 
-        meoSatLayer.enabled = true;        
-        meoDebrisLayer.enabled = true;
+        leoSatLayer.enabled = (showLeo.value && showSat.value);
+        meoSatLayer.enabled = (showMeo.value && showSat.value);
+        heoSatLayer.enabled = (showHeo.value && showSat.value);
+        geoSatLayer.enabled = (showGeo.value && showSat.value);
+                           
+        leoDebrisLayer.enabled = (showLeo.value && showDebris.value);
+        meoDebrisLayer.enabled = (showMeo.value && showDebris.value);
+        heoDebrisLayer.enabled = (showHeo.value && showDebris.value);
+        geoDebrisLayer.enabled = (showGeo.value && showDebris.value);
+        
+        leoRocketLayer.enabled = (showLeo.value && showRocket.value);
+        meoRocketLayer.enabled = (showMeo.value && showRocket.value);
+        heoRocketLayer.enabled = (showHeo.value && showRocket.value);
+        geoRocketLayer.enabled = (showGeo.value && showRocket.value);
 
-        heoSatLayer.enabled = true;        
-        heoDebrisLayer.enabled = true;
+        unclassifiedSatLayer.enabled = (showUnc.value && showSat.value);
+        unclassifiedDebrisLayer.enabled = (showUnc.value && showDebris.value);
+        unclassifiedRocketLayer.enabled = (showUnc.value && showRocket.value);
+        
 
-        geoSatLayer.enabled = true;        
-        geoDebrisLayer.enabled = true;
-    
+        console.log('showLeo.value from worldwind: ', showLeo.value)
+        console.log('showMeo.value from worldwind: ', showMeo.value)
+        console.log('showHeo.value from worldwind: ', showHeo.value)
+        console.log('showGeo.value from worldwind: ', showGeo.value)
+        console.log('showUnc.value from worldwind: ', showUnc.value)
+        console.log('showSat.value from worldwind: ', showSat.value)
+        console.log('showDebris.value from worldwind: ', showDebris.value)
+        console.log('showRocket.value from worldwind: ', showRocket.value)
+
         var satNum = satPac.length;    
 
-        /***Satellite Propagation***/
+        //Satellite Propagation
         //plots all sats
         renderSats(satPac);
 
@@ -204,8 +251,7 @@ export const launchGlobe = async () => {
           var satStatus = [];
           var now = new Date();
           var everyCurrentPosition = [];
-          
-          
+                    
           for (var j = 0; j < satNum; j++) {
 
             var currentPosition = null;
@@ -218,7 +264,6 @@ export const launchGlobe = async () => {
               console.log(err + 'Error in renderSats, sat ' + j +  ": " + satPac[j].OBJECT_NAME);
               continue;
             }
-
 
             try {                
                 satVelocity.push(velocity);
@@ -247,7 +292,7 @@ export const launchGlobe = async () => {
             // Add colored image depending on sat type
             switch (satData[j].OBJECT_TYPE) {              
               case "PAYLOAD":
-                placemarkAttributes.imageSource = blue_dot;
+                placemarkAttributes.imageSource = payload_icon;
                 placemarkAttributes.imageScale = 0.2;
                 break;
               case "ROCKET BODY":
@@ -286,7 +331,21 @@ export const launchGlobe = async () => {
               } else if (satData[j].ORBIT_TYPE === "Highly Elliptical Orbit") {
                 heoSatLayer.addRenderable(placemark);
               } else if (satData[j].ORBIT_TYPE === "Unclassified") {
-                //unclassifiedSatLayer.addRenderable(placemark);
+                unclassifiedSatLayer.addRenderable(placemark);
+              } else {
+                console.log(satData[j].ORBIT_TYPE);
+              }
+            } else if (satData[j].OBJECT_TYPE === "ROCKET BODY") {
+              if (satData[j].ORBIT_TYPE === "Low Earth Orbit") {
+                leoRocketLayer.addRenderable(placemark);
+              } else if (satData[j].ORBIT_TYPE === "Middle Earth Orbit") {
+                meoRocketLayer.addRenderable(placemark);
+              } else if (satData[j].ORBIT_TYPE === "Geosynchronous") {
+                geoRocketLayer.addRenderable(placemark);
+              } else if (satData[j].ORBIT_TYPE === "Highly Elliptical Orbit") {
+                heoRocketLayer.addRenderable(placemark);
+              } else if (satData[j].ORBIT_TYPE === "Unclassified") {
+                unclassifiedRocketLayer.addRenderable(placemark);
               } else {
                 console.log(satData[j].ORBIT_TYPE);
               }
@@ -300,16 +359,58 @@ export const launchGlobe = async () => {
               } else if (satData[j].ORBIT_TYPE === "Highly Elliptical Orbit") {
                 heoDebrisLayer.addRenderable(placemark);
               } else if (satData[j].ORBIT_TYPE === "Unclassified") {
-                //unclassifiedDebrisLayer.addRenderable(placemark);
+                unclassifiedDebrisLayer.addRenderable(placemark);
               } else {
                 console.log(satData[j].ORBIT_TYPE);
               }
-            }                
-          } //End of for                 
+            }            
+          } //End of for   
+          
+
+          /*
+          // Interval to Update all Satellite Positions
+          var updateTime = 2000
+          var updatePermission = true
+          //updatePositions()
+
+          console.log('updatePositions: ', updatePositions)
+          
+          var updatePositions = setInterval(function () {
+          
+            if (!updatePermission)
+              return;
+
+            for (var indx = 0; indx < satNum; indx += 1) {
+              var timeSlide = 500 //$('#timeEvent').jqxSlider('value');
+              var now = new Date();
+              var time = new Date(now.getTime() + timeSlide * 60000);              
+              try {
+                var position = getPosition(satellite.twoline2satrec(satData[indx].TLE_LINE1, satData[indx].TLE_LINE2), time);
+                satVelocity[indx] = getVelocity(satellite.twoline2satrec(satData[indx].TLE_LINE1, satData[indx].TLE_LINE2), time);
+
+              } catch (err) {
+                console.log(err + ' in updatePositions interval, sat ' + indx + satPac[indx].OBJECT_NAME);
+                continue;
+              }
+              try {
+                everyCurrentPosition[indx].latitude = position.latitude;
+                everyCurrentPosition[indx].longitude = position.longitude;
+                everyCurrentPosition[indx].altitude = position.altitude;
+              } catch (err) {
+                //TODO: Handle deorbited sats
+              }
+            }
+            wwd.redraw();
+          }, updateTime * 1.5);
+          */
+
     
           wwd.redraw();
         }
-      }
+    }
+    
+    
+  
     
     wwd.redraw();
 
