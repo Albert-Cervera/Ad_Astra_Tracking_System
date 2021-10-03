@@ -10534,6 +10534,11 @@
     "minimist" "^1.1.1"
     "walker" "~1.0.5"
 
+"satellite.js@^4.1.3":
+  "integrity" "sha512-l65XHxmT4n31DSGQy/jnu/sLfKn42g862h1p9NyalOEYCpEsplFAqUIT4+euK0AByizZML2Zkjbl0HWI79KC0A=="
+  "resolved" "https://registry.npmjs.org/satellite.js/-/satellite.js-4.1.3.tgz"
+  "version" "4.1.3"
+
 "sax@^1.2.4", "sax@~1.2.4":
   "integrity" "sha512-NqVDv9TpANUjFm0N8uM5GxL36UgKi9/atZw+x7YFnQ8ckwFGKrl4xX4yWtrey3UJm5nP1kUbnYgLopqWNSRhWw=="
   "resolved" "https://registry.npmjs.org/sax/-/sax-1.2.4.tgz"
