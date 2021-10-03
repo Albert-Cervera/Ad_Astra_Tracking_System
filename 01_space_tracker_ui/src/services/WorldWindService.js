@@ -225,6 +225,7 @@ export const launchGlobe = async () => {
         unclassifiedRocketLayer.enabled = (showUnc.value && showRocket.value);
         
 
+        /*
         console.log('showLeo.value from worldwind: ', showLeo.value)
         console.log('showMeo.value from worldwind: ', showMeo.value)
         console.log('showHeo.value from worldwind: ', showHeo.value)
@@ -233,6 +234,7 @@ export const launchGlobe = async () => {
         console.log('showSat.value from worldwind: ', showSat.value)
         console.log('showDebris.value from worldwind: ', showDebris.value)
         console.log('showRocket.value from worldwind: ', showRocket.value)
+        */
 
         var satNum = satPac.length;    
 
@@ -367,7 +369,7 @@ export const launchGlobe = async () => {
           } //End of for   
           
 
-          /*
+          // /*
           // Interval to Update all Satellite Positions
           var updateTime = 2000
           var updatePermission = true
@@ -402,7 +404,7 @@ export const launchGlobe = async () => {
             }
             wwd.redraw();
           }, updateTime * 1.5);
-          */
+          // */
 
     
           wwd.redraw();
