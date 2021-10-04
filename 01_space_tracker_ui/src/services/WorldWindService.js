@@ -6,6 +6,7 @@ var satellite = require('satellite.js');
 
 import payload_icon from '../assets/icons/satellite.png'
 import yellow_dot from '../assets/icons/yellow_dot.png'
+//import yellow_dot from '../assets/icons/rocket.png'
 import red_dot from '../assets/icons/red_dot.png'
 
 

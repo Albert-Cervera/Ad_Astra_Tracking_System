@@ -95,6 +95,7 @@
     </canvas>
     <br />
     
+    <div class="text"> <p><b>NASA App Challenge 2021 || Team: Albert Aarón Cervera Uribe, Jibin Rajan Varghese, Juan Guillermo Reséndiz Rojas, Paulina Palomino Alvarado and Gerardo Valencia Bacerra</b></p> </div>
   </div>
 </template>
 
